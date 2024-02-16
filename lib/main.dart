@@ -5,7 +5,7 @@ import 'package:prova_app/Pantallas/Registro.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  var box = await Hive.openBox("box");
+  var box = await Hive.openBox("box_de_usuaris");
   runApp(MyApp());
 }
 

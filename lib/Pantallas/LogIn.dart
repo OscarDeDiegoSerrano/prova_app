@@ -1,62 +1,110 @@
 import 'package:flutter/material.dart';
-import 'package:prova_app/Pantallas/database.dart';
-import 'package:prova_app/Pantallas/Pagina_Principal.dart';
+import 'package:hive/hive.dart';
+import 'Pagina_Principal.dart'; // Importa la página principal
+import 'database.dart'; // Importa la clase Database
 
-
-
-class LoginScreen extends StatelessWidget {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
+class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Inicio de Sesión')),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Nombre de usuario'),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Contraseña'),
-              obscureText: true,
-            ),
-            SizedBox(height: 20.0),
-            ElevatedButton(
-              onPressed: () {
-                _login(context);
-              },
-              child: Text('Iniciar Sesión'),
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text('Inicio de Sesión'),
       ),
+      body: LoginForm(),
     );
   }
+}
 
-  void _login(BuildContext context) async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+class LoginForm extends StatefulWidget {
+  @override
+  _LoginFormState createState() => _LoginFormState();
+}
 
-    // Comprobar credenciales en la base de datos
-    final isValid = await Database.instance.logIn(username, password);
+class _LoginFormState extends State<LoginForm> {
+  final _formKey = GlobalKey<FormState>();
+  TextEditingController _usernameController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
 
-    if (isValid) {
-      // Credenciales correctas, navegar a la pantalla principal
-      Navigator.pushReplacement(
+  final _boxDeUsuaris = Hive.box("box_de_usuaris");
+  Database bd = Database();
+
+  @override
+  void initState(){
+
+    if (_boxDeUsuaris.get("box_de_usuaris") == null) {
+
+      bd.crearDadesInicials();
+
+    } else {
+
+      bd.carregarDades();
+    }
+
+    super.initState();
+  }
+
+  void ferLogin() {
+    String usernameEscrit = _usernameController.text;
+    String passwordEscrit = _passwordController.text;
+
+    bool credencialesCorrectas = bd.verificarCredenciales(usernameEscrit, passwordEscrit);
+
+    if (credencialesCorrectas) {
+      Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => Pagina_Principal()),
       );
     } else {
-      // Credenciales incorrectas, mostrar mensaje de error
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Credenciales incorrectas'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Usuario o contraseña incorrectos'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          TextFormField(
+            controller: _usernameController,
+            decoration: InputDecoration(
+              labelText: 'Usuario',
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingrese su usuario';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(
+              labelText: 'Contraseña',
+            ),
+            obscureText: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingrese su contraseña';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: ferLogin,
+            
+            child: Text('Iniciar Sesión'),
+          ),
+        ],
+      ),
+    );
   }
 }
